@@ -1,0 +1,33 @@
+{
+  "name": "lot-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for LOT",
+  "main": "index.js",
+  "scripts": {
+    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "lint:js": "eslint --ext .js ./",
+    "lint": "npm run lint:sol && npm run lint:js",
+    "test": "npx hardhat test"
+  },
+  "author": "Hoang Nguyen",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.15.8",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.7",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.7",
+    "hardhat": "^2.6.5",
+    "prettier": "^2.4.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.18",
+    "solhint": "^3.3.6",
+    "solhint-plugin-prettier": "^0.0.5"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.3.2"
+  }
+}
