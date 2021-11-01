@@ -10,8 +10,22 @@ const calculateGasCost = (gasUsed) => {
   return ethers.utils.formatEther(totalUsdInWei);
 };
 
+const buy = async (token, crowdsale, parcelId, tag) => {
+  // get parcel info by parcelId
+  const parcel = await crowdsale.parcels(parcelId);
+
+  // buyer has to approve the crowdsale contract to transfer the payment token
+  const approve = await token.approve(crowdsale.address, parcel.price);
+  await approve.wait();
+
+  const buy = await crowdsale.buy(parcelId, tag);
+
+  const tx = buy.wait();
+  return tx;
+};
+
 describe("Sanity tests", function () {
-  let token, buyer, owner, crowdsale, nft;
+  let token, buyer, owner, crowdsale, nft, simpleNFTLock;
 
   before(async function () {
     [buyer, owner] = await ethers.getSigners();
@@ -35,24 +49,24 @@ describe("Sanity tests", function () {
     expect(
       await nft.hasRole(await nft.DEFAULT_ADMIN_ROLE(), owner.address)
     ).to.be.true;
+
+    const SimpleNFTLock = await ethers.getContractFactory("SimpleNFTLock");
+    simpleNFTLock = await SimpleNFTLock.deploy(nft.address);
   });
 
-  it("should buy", async function () {
+  it("should allow to buy nft", async function () {
     const parcelId = 1;
-    const tag = 1;
-
-    // get parcel info by parcelId
-    const parcel = await crowdsale.parcels(parcelId);
-
-    // buyer has to approve the crowdsale contract to transfer the payment token
-    const approve = await token.approve(crowdsale.address, parcel.price);
-    await approve.wait();
+    const tag = 1; // unique across tests
 
     // get balance before and after buying to verify later
     const balanceOfOwnerBefore = await token.balanceOf(owner.address);
-    const buy = await crowdsale.buy(parcelId, tag);
-    const { logs } = await buy.wait();
+
+    const { logs } = await buy(token, crowdsale, parcelId, tag);
+
     const balanceOfOwnerAfter = await token.balanceOf(owner.address);
+
+    // get parcel info by parcelId
+    const parcel = await crowdsale.parcels(parcelId);
 
     // verify balance and price adding up correctly
     expect(balanceOfOwnerBefore.add(parcel.price)).to.equal(
@@ -81,5 +95,26 @@ describe("Sanity tests", function () {
     // verify nft ownership
     expect(await nft.balanceOf(buyer.address)).to.equal(1);
     expect(await nft.ownerOf(tokenId)).to.equal(buyer.address);
+  });
+
+  it("should allow to lock and unlock nft", async function () {
+    const parcelId = 1;
+    const tag = 2; // unique across tests
+
+    await buy(token, crowdsale, parcelId, tag);
+
+    // get first tokenId of buyer
+    const tokenId = await nft.tokenOfOwnerByIndex(buyer.address, 0);
+
+    // approve transfer
+    await nft.approve(simpleNFTLock.address, tokenId);
+
+    await expect(simpleNFTLock.lock(tokenId))
+      .to.emit(simpleNFTLock, "Lock")
+      .withArgs(buyer.address, tokenId);
+
+    await expect(simpleNFTLock.unlock(tokenId))
+      .to.emit(simpleNFTLock, "Unlock")
+      .withArgs(buyer.address, tokenId);
   });
 });
