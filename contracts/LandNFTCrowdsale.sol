@@ -70,6 +70,7 @@ contract LandNFTCrowdsale is Ownable, ReentrancyGuard {
     /// @notice Buy a single/multiples NFT
     /// @dev Use _itemId to associate the purchase order with tokenId
     /// @param _itemId Unique number generated on the front-end
+    /// @param _quantity Amount nft which user want to buy
     function buy(uint256 _itemId, uint256 _quantity) public nonReentrant {
         require(_quantity > 0, "LandNFT: quantity must from 1 and above");
 
