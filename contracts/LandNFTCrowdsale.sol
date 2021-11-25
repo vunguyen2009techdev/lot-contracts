@@ -49,7 +49,7 @@ contract LandNFTCrowdsale is Ownable, ReentrancyGuard {
 
     /// @notice Listed item's sale info
     /// @dev Supply will be carried on and cannot be overwritten
-    /// @param _itemId Unique identifier per parcel type
+    /// @param _itemId Unique identifier defined by the LOT backend
     /// @param _price Sale price in the smallest unit i.e. wei
     /// @param _erc20Address The address of payment token i.e. USDT contract's address
     /// @param _cap Maximum supply
@@ -65,9 +65,9 @@ contract LandNFTCrowdsale is Ownable, ReentrancyGuard {
         emit ListedItem(_itemId, _price, _erc20Address, _cap);
     }
 
-    /// @notice Buy a single/multiples NFT
-    /// @dev Use _itemId to associate the purchase order with tokenId
-    /// @param _itemId Unique number generated on the front-end
+    /// @notice Buy one or many NFTs
+    /// @dev Use transaction logs to get the tokenId's of newly minted NFTs
+    /// @param _itemId Unique identifier defined by the LOT backend
     /// @param _quantity Amount nft which user want to buy
     function buy(uint256 _itemId, uint256 _quantity) public nonReentrant {
         require(_quantity > 0, "LandNFT: quantity must from 1 and above");
