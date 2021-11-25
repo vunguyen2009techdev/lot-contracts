@@ -10,22 +10,26 @@ const calculateGasCost = (gasUsed) => {
   return ethers.utils.formatEther(totalUsdInWei);
 };
 
-const buy = async (token, crowdsale, parcelId, tag) => {
+const buy = async (token, crowdsale, itemId, quantity) => {
   // get parcel info by parcelId
-  const parcel = await crowdsale.parcels(parcelId);
+  const parcel = await crowdsale.parcels(itemId);
 
   // buyer has to approve the crowdsale contract to transfer the payment token
-  const approve = await token.approve(crowdsale.address, parcel.price);
+  const approve = await token.approve(
+    crowdsale.address,
+    BigInt(parcel.price * quantity)
+  );
   await approve.wait();
 
-  const buy = await crowdsale.buy(parcelId, tag);
+  const buy = await crowdsale.buy(itemId, quantity);
 
   const tx = buy.wait();
   return tx;
 };
 
 describe("Sanity tests", function () {
-  let token, buyer, owner, crowdsale, nft, simpleNFTLock;
+  const cap = 23597;
+  let token, decimals, buyer, owner, crowdsale, nft, simpleNFTLock;
 
   before(async function () {
     [buyer, owner] = await ethers.getSigners();
@@ -34,13 +38,16 @@ describe("Sanity tests", function () {
     const Token = await ethers.getContractFactory("StableCoin");
     token = await Token.deploy();
 
+    // get decimals
+    decimals = await token.decimals();
+
     // verify buyer has some coins to buy NFT
     const buyerBalance = await token.balanceOf(buyer.address);
     expect(await token.totalSupply()).to.equal(buyerBalance);
 
     // deploy crowdsale contract
     const Crowdsale = await ethers.getContractFactory("LandNFTCrowdsale");
-    crowdsale = await Crowdsale.deploy(owner.address, token.address);
+    crowdsale = await Crowdsale.deploy(owner.address);
     expect(await crowdsale.owner()).to.equal(owner.address);
 
     // verify nft deployment
@@ -55,26 +62,32 @@ describe("Sanity tests", function () {
   });
 
   it("should allow to buy nft", async function () {
-    const parcelId = 1;
-    const tag = 1; // unique across tests
+    const itemId = 1; // unique across tests
+    const quantity = 2;
+    const price = BigInt(1 * 10 ** decimals);
+
+    // listed an item
+    await crowdsale
+      .connect(owner)
+      .listedItem(token.address, itemId, price, cap);
 
     // get balance before and after buying to verify later
     const balanceOfOwnerBefore = await token.balanceOf(owner.address);
 
-    const { logs } = await buy(token, crowdsale, parcelId, tag);
+    const { logs } = await buy(token, crowdsale, itemId, quantity);
 
     const balanceOfOwnerAfter = await token.balanceOf(owner.address);
 
-    // get parcel info by parcelId
-    const parcel = await crowdsale.parcels(parcelId);
+    // get parcel info by itemId
+    const parcel = await crowdsale.parcels(itemId);
 
     // verify balance and price adding up correctly
-    expect(balanceOfOwnerBefore.add(parcel.price)).to.equal(
+    expect(balanceOfOwnerBefore.add(BigInt(parcel.price * quantity))).to.equal(
       balanceOfOwnerAfter
     );
 
     // retreive tokenId from the buy transaction
-    let tokenId;
+    let tokenIds = [];
     logs.forEach((l) => {
       const { data, topics, address } = l;
       // only care about the event emitted from the nft contract
@@ -86,22 +99,30 @@ describe("Sanity tests", function () {
           args.from === ethers.constants.AddressZero &&
           args.to === buyer.address
         ) {
-          tokenId = args.tokenId;
+          tokenIds.push(args.tokenId);
         }
       }
     });
-    expect(tokenId).to.be.an("object");
+    tokenIds.map((tokenId) => expect(tokenId).to.be.an("object"));
 
     // verify nft ownership
-    expect(await nft.balanceOf(buyer.address)).to.equal(1);
-    expect(await nft.ownerOf(tokenId)).to.equal(buyer.address);
+    expect(await nft.balanceOf(buyer.address)).to.equal(quantity);
+    tokenIds.map(async (tokenId) =>
+      expect(await nft.ownerOf(tokenId)).to.equal(buyer.address)
+    );
   });
 
   it("should allow to lock and unlock nft", async function () {
-    const parcelId = 1;
-    const tag = 2; // unique across tests
+    const itemId = 2; // unique across tests
+    const quantity = 1;
+    const price = BigInt(1 * 10 ** decimals);
 
-    await buy(token, crowdsale, parcelId, tag);
+    // listed an item
+    await crowdsale
+      .connect(owner)
+      .listedItem(token.address, itemId, price, cap);
+
+    await buy(token, crowdsale, itemId, quantity);
 
     // get first tokenId of buyer
     const tokenId = await nft.tokenOfOwnerByIndex(buyer.address, 0);
