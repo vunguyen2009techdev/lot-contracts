@@ -69,7 +69,7 @@ describe("Sanity tests", function () {
     // listed an item
     await crowdsale
       .connect(owner)
-      .listedItem(token.address, itemId, price, cap);
+      .listedItem(itemId, price, token.address, cap);
 
     // get balance before and after buying to verify later
     const balanceOfOwnerBefore = await token.balanceOf(owner.address);
@@ -120,7 +120,7 @@ describe("Sanity tests", function () {
     // listed an item
     await crowdsale
       .connect(owner)
-      .listedItem(token.address, itemId, price, cap);
+      .listedItem(itemId, price, token.address, cap);
 
     await buy(token, crowdsale, itemId, quantity);
 
