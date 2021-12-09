@@ -47,7 +47,7 @@ contract LandNFTCrowdsaleSignature is Ownable, ReentrancyGuard, ECVerify {
         uint256 _price,
         address _erc20Address,
         bytes memory _signature
-    ) public onlyOwner nonReentrant {
+    ) public nonReentrant {
         require(_quantity > 0, "LandNFT: quantity must from 1 and above");
         require(_price > 0, "LandNFT: price was not set");
 
