@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require("@openzeppelin/hardhat-upgrades");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
@@ -21,13 +22,17 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 module.exports = {
   solidity: "0.8.9",
   networks: {
+    hardhat: {
+      chainId: 1337,
+    },
     testnet: {
       // https://docs.binance.org/smart-chain/developer/rpc.html
-      url: "https://data-seed-prebsc-1-s2.binance.org:8545",
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: {
-        mnemonic: process.env.MNEMONIC,
-      },
+      accounts: [process.env.MNEMONIC],
+      // accounts: {
+      //   mnemonic: process.env.MNEMONIC,
+      // },
     },
   },
   etherscan: {
