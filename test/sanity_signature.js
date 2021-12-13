@@ -2,6 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 require("dotenv").config();
 
+function randomdInteger(min = 0, max = 1 * 10 ** 18) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 const buy = async (
   token,
   owner,
@@ -11,14 +15,15 @@ const buy = async (
   quantity,
   price,
   priceApprove,
-  signature
+  signature,
+  salt
 ) => {
   const approve = await token.approve(crowdsale.address, BigInt(priceApprove));
   await approve.wait();
 
   const buy = await crowdsale
     .connect(owner)
-    .buy(itemId, buyerAddress, quantity, price, token.address, signature);
+    .buy(itemId, buyerAddress, quantity, price, token.address, signature, salt);
 
   const tx = buy.wait();
   return tx;
@@ -62,13 +67,14 @@ describe("Sanity tests", function () {
     const rawPrice = 1;
     const price = BigInt(rawPrice * 10 ** decimals);
     const priceApprove = BigInt(rawPrice * quantity * 10 ** decimals);
+    const salt = BigInt(randomdInteger());
     const privateKey = process.env.PRIVATE_KEY_SIGN;
 
     const wallet = new ethers.Wallet(privateKey);
 
     const messageHash = await ethers.utils.solidityKeccak256(
-      ["uint256", "address", "uint256", "uint256", "address"],
-      [itemId, buyer.address, quantity, price, token.address]
+      ["uint256", "address", "uint256", "uint256", "address", "uint256"],
+      [itemId, buyer.address, quantity, price, token.address, salt]
     );
     const messageHashBytes = ethers.utils.arrayify(messageHash);
     const signature = await wallet.signMessage(messageHashBytes);
@@ -86,7 +92,8 @@ describe("Sanity tests", function () {
       quantity,
       price,
       priceApprove,
-      signature
+      signature,
+      salt
     );
 
     const balanceOfOwnerAfter = await token.balanceOf(owner.address);
