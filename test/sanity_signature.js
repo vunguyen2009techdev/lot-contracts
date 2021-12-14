@@ -15,15 +15,14 @@ const buy = async (
   quantity,
   price,
   priceApprove,
-  signature,
-  salt
+  signature
 ) => {
   const approve = await token.approve(crowdsale.address, BigInt(priceApprove));
   await approve.wait();
 
   const buy = await crowdsale
     .connect(owner)
-    .buy(itemId, buyerAddress, quantity, price, token.address, signature, salt);
+    .buy(itemId, buyerAddress, quantity, price, token.address, signature);
 
   const tx = buy.wait();
   return tx;
@@ -67,14 +66,14 @@ describe("Sanity tests", function () {
     const rawPrice = 1;
     const price = BigInt(rawPrice * 10 ** decimals);
     const priceApprove = BigInt(rawPrice * quantity * 10 ** decimals);
-    const salt = BigInt(randomdInteger());
     const privateKey = process.env.PRIVATE_KEY_SIGN;
+    const nonce = await crowdsale.nonces(buyer.address);
 
     const wallet = new ethers.Wallet(privateKey);
 
     const messageHash = await ethers.utils.solidityKeccak256(
       ["uint256", "address", "uint256", "uint256", "address", "uint256"],
-      [itemId, buyer.address, quantity, price, token.address, salt]
+      [itemId, buyer.address, quantity, price, token.address, nonce]
     );
     const messageHashBytes = ethers.utils.arrayify(messageHash);
     const signature = await wallet.signMessage(messageHashBytes);
@@ -92,8 +91,7 @@ describe("Sanity tests", function () {
       quantity,
       price,
       priceApprove,
-      signature,
-      salt
+      signature
     );
 
     const balanceOfOwnerAfter = await token.balanceOf(owner.address);

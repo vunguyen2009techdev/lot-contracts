@@ -6,12 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 import "./LandNFT.sol";
 
 contract LandNFTCrowdsaleSignature is Ownable, ReentrancyGuard {
+    using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
     LandNFT public immutable nft;
-    mapping(address => mapping(bytes32 => bool)) internal approved;
+    mapping(address => Counters.Counter) public nonces;
 
     event Buy(
         address indexed buyer,
@@ -33,43 +35,14 @@ contract LandNFTCrowdsaleSignature is Ownable, ReentrancyGuard {
         nft.grantRole(nft.DEFAULT_ADMIN_ROLE(), owner);
     }
 
-    function approveOrderHash(bytes32 hash) internal {
-        require(
-            !approved[msg.sender][hash],
-            "LandNFT: Order has already been approved"
-        );
-        approved[msg.sender][hash] = true;
-    }
-
-    function hashOrder(
-        uint256 _itemId,
-        address _buyerAddress,
-        uint256 _quantity,
-        uint256 _price,
-        address _erc20Address,
-        uint256 _salt
-    ) internal pure returns (bytes32 hash) {
-        return
-            keccak256(
-                abi.encode(
-                    _itemId,
-                    _buyerAddress,
-                    _quantity,
-                    _price,
-                    _erc20Address,
-                    _salt
-                )
-            );
-    }
-
     function hashPacked(
         uint256 _itemId,
         address _buyerAddress,
         uint256 _quantity,
         uint256 _price,
-        address _erc20Address,
-        uint256 _salt
-    ) internal pure returns (bytes32 hash) {
+        address _erc20Address
+    ) internal view returns (bytes32 hash) {
+        uint256 nonce = nonces[_buyerAddress].current();
         return
             keccak256(
                 abi.encodePacked(
@@ -78,7 +51,7 @@ contract LandNFTCrowdsaleSignature is Ownable, ReentrancyGuard {
                     _quantity,
                     _price,
                     _erc20Address,
-                    _salt
+                    nonce
                 )
             );
     }
@@ -91,43 +64,31 @@ contract LandNFTCrowdsaleSignature is Ownable, ReentrancyGuard {
     /// @param _price Sale price defined by the LOT backend Admin in the smallest unit i.e. wei
     /// @param _erc20Address The address of payment token i.e. USDT contract's address
     /// @param _signature Personal signature defined by the LOT backend Admin
-    /// @param _salt salt to prevent duplicate hashes
     function buy(
         uint256 _itemId,
         address _buyerAddress,
         uint256 _quantity,
         uint256 _price,
         address _erc20Address,
-        bytes memory _signature,
-        uint256 _salt
+        bytes memory _signature
     ) public nonReentrant {
         require(_quantity > 0, "LandNFT: quantity must from 1 and above");
         require(_price > 0, "LandNFT: price was not set");
 
-        approveOrderHash(
-            hashOrder(
-                _itemId,
-                _buyerAddress,
-                _quantity,
-                _price,
-                _erc20Address,
-                _salt
-            )
+        bytes32 hash = hashPacked(
+            _itemId,
+            _buyerAddress,
+            _quantity,
+            _price,
+            _erc20Address
         );
-
-        bytes32 etherHash = ECDSA.toEthSignedMessageHash(
-            hashPacked(
-                _itemId,
-                _buyerAddress,
-                _quantity,
-                _price,
-                _erc20Address,
-                _salt
-            )
-        );
+        bytes32 etherHash = ECDSA.toEthSignedMessageHash(hash);
 
         address signer = ECDSA.recover(etherHash, _signature);
-        require(signer == owner(), "LandNFT: owner signature not match");
+        require(
+            signer == owner(),
+            "LandNFT: signature does not match message sender"
+        );
 
         IERC20 paymentToken = IERC20(_erc20Address);
 
@@ -140,6 +101,8 @@ contract LandNFTCrowdsaleSignature is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < _quantity; i += 1) {
             nft.mint(_buyerAddress);
         }
+
+        nonces[_buyerAddress].increment();
         emit Buy(_buyerAddress, _itemId, _quantity, _price, _erc20Address);
     }
 }
