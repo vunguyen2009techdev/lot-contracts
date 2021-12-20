@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/presets/ERC721PresetMinterPauserAutoIdUpgradeable.sol";
 
 contract LandNFTCrowdsale is
     Initializable,
@@ -16,7 +16,7 @@ contract LandNFTCrowdsale is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    address public nft;
+    ERC721PresetMinterPauserAutoIdUpgradeable public nft;
 
     struct Parcel {
         uint256 price;
@@ -45,7 +45,7 @@ contract LandNFTCrowdsale is
     function initialize(address _owner, address _nft) public initializer {
         __Ownable_init();
         transferOwnership(_owner);
-        nft = _nft;
+        nft = ERC721PresetMinterPauserAutoIdUpgradeable(_nft);
     }
 
     /// @notice Listed item's sale info
@@ -89,7 +89,7 @@ contract LandNFTCrowdsale is
         paymentToken.safeTransferFrom(buyer, owner(), price * _quantity);
 
         for (uint256 i = 0; i < _quantity; i += 1) {
-            // IERC721Upgradeable(nft)._mint(buyer);
+            nft.mint(buyer);
         }
         emit Buy(buyer, _itemId, _quantity, price, erc20Address);
     }
