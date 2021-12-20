@@ -21,6 +21,8 @@ describe("Sanity (proxy)", function () {
     console.log("- name: ", await nft.name());
     console.log("- symbol: ", await nft.symbol());
 
+    await nft.grantRole(nft.DEFAULT_ADMIN_ROLE(), owner.address);
+
     console.log("DEFAULT_ADMIN_ROLE: ", await nft.DEFAULT_ADMIN_ROLE());
 
     const Crowdsale = await ethers.getContractFactory("LandNFTCrowdsale");

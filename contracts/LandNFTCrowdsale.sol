@@ -89,7 +89,7 @@ contract LandNFTCrowdsale is
         paymentToken.safeTransferFrom(buyer, owner(), price * _quantity);
 
         for (uint256 i = 0; i < _quantity; i += 1) {
-            IERC721Upgradeable(nft)._mint(buyer);
+            // IERC721Upgradeable(nft)._mint(buyer);
         }
         emit Buy(buyer, _itemId, _quantity, price, erc20Address);
     }
