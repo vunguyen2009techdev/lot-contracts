@@ -47,7 +47,7 @@ describe("Sanity tests", function () {
 
     // deploy crowdsale contract
     const Crowdsale = await ethers.getContractFactory("LandNFTCrowdsale");
-    crowdsale = await Crowdsale.deploy(owner.address);
+    crowdsale = await Crowdsale.deploy();
     expect(await crowdsale.owner()).to.equal(owner.address);
 
     // verify nft deployment

@@ -24,6 +24,9 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 1337,
+      throwOnTransactionFailures: true,
+      throwOnCallFailures: true,
+      allowUnlimitedContractSize: true,
     },
     testnet: {
       // https://docs.binance.org/smart-chain/developer/rpc.html

@@ -1,22 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./LandNFT.sol";
 
-contract LandNFTCrowdsale is
-    Initializable,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable
-{
-    using SafeERC20Upgradeable for IERC20Upgradeable;
-
-    address public nft;
+contract LandNFTCrowdsale is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    LandNFT public immutable nft;
 
     struct Parcel {
         uint256 price;
@@ -42,10 +35,16 @@ contract LandNFTCrowdsale is
         uint256 cap
     );
 
-    function initialize(address _owner, address _nft) public initializer {
-        __Ownable_init();
-        transferOwnership(_owner);
-        nft = _nft;
+    /// @param owner The address of admin and holding fund
+    constructor(address owner) {
+        transferOwnership(owner);
+
+        nft = new LandNFT(
+            "Land NFT",
+            "LLOT",
+            "https://api.landoftitans.net/nft/land/"
+        );
+        nft.grantRole(nft.DEFAULT_ADMIN_ROLE(), owner);
     }
 
     /// @notice Listed item's sale info
@@ -76,7 +75,7 @@ contract LandNFTCrowdsale is
         Parcel memory parcel = parcels[_itemId];
         uint256 price = parcel.price;
         address erc20Address = parcel.erc20Address;
-        IERC20Upgradeable paymentToken = IERC20Upgradeable(parcel.erc20Address);
+        IERC20 paymentToken = IERC20(parcel.erc20Address);
         uint256 cap = parcel.cap;
         uint256 supply = parcel.supply;
 
@@ -89,7 +88,7 @@ contract LandNFTCrowdsale is
         paymentToken.safeTransferFrom(buyer, owner(), price * _quantity);
 
         for (uint256 i = 0; i < _quantity; i += 1) {
-            IERC721Upgradeable(nft)._mint(buyer);
+            nft.mint(buyer);
         }
         emit Buy(buyer, _itemId, _quantity, price, erc20Address);
     }
