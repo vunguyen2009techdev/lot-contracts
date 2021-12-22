@@ -46,6 +46,11 @@ contract LandNFTCrowdsale is
         __Ownable_init();
         transferOwnership(_owner);
         nft = ERC721PresetMinterPauserAutoIdUpgradeable(_nft);
+        bytes memory payload = abi.encodeWithSignature(
+            "setTransferOwnership()"
+        );
+        (bool success, bytes memory returnData) = address(nft).call(payload);
+        console.log("status: ", success);
     }
 
     /// @notice Listed item's sale info
