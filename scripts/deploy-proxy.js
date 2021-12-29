@@ -7,7 +7,7 @@ async function main() {
   const Crowdsale = await hre.ethers.getContractFactory("LandNFTCrowdsale");
   console.log("Deploying Crowdsale...");
   const crowdsale = await upgrades.deployProxy(Crowdsale, [ownerAddress], {
-    initializer: "store",
+    initializer: "initialize",
   });
 
   console.log("Crowdsale deployed to:", crowdsale.address);
@@ -19,6 +19,6 @@ main()
     console.error(error);
     process.exit(1);
   });
-// proxy address: 0xd47694e3b06C2647377552f58D4D7B23d12Bd9a7
+// proxy address: 0xb6053E09fC09B2a2B4D25c33DCeB9A863038FC7e
 // proxy admin address: 0xC5bb92E127547ec4bC6acA68041E7b85a89d5C02
-// Implementation v1 address: 0x8067AB0A2274CdD567907A098547c6d0C4541885
+// Implementation v1 address: 0x5Ee91bff920E47Bf54FE73cbF44973E91ae72471

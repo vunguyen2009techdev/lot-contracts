@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/presets/ERC721PresetMinterPauserAutoIdUpgradeable.sol";
+import "./LandNFT.sol";
 
 contract LandNFTCrowdsale is
     Initializable,
@@ -16,7 +18,8 @@ contract LandNFTCrowdsale is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    ERC721PresetMinterPauserAutoIdUpgradeable public nft;
+    address public nftProxyAddress;
+    ERC721PresetMinterPauserAutoIdUpgradeable private nft;
 
     struct Parcel {
         uint256 price;
@@ -42,15 +45,28 @@ contract LandNFTCrowdsale is
         uint256 cap
     );
 
-    function initialize(address _owner, address _nft) public initializer {
+    function initialize(address _owner) public initializer {
         __Ownable_init();
         transferOwnership(_owner);
-        nft = ERC721PresetMinterPauserAutoIdUpgradeable(_nft);
-        bytes memory payload = abi.encodeWithSignature(
-            "setTransferOwnership()"
+
+        UpgradeableBeacon _beacon = new UpgradeableBeacon(
+            address(new LandNFT())
         );
-        (bool success, bytes memory returnData) = address(nft).call(payload);
-        console.log("status: ", success);
+        _beacon.transferOwnership(_owner);
+
+        BeaconProxy proxy = new BeaconProxy(
+            address(_beacon),
+            abi.encodeWithSelector(
+                LandNFT(address(0)).initialize.selector,
+                "Land NFT",
+                "LLOT",
+                "https://api.landoftitans.net/nft/land/"
+            )
+        );
+
+        nftProxyAddress = address(proxy);
+
+        nft = ERC721PresetMinterPauserAutoIdUpgradeable(nftProxyAddress);
     }
 
     /// @notice Listed item's sale info

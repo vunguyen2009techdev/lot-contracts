@@ -20,7 +20,16 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.9",
+  // solidity: "0.8.9",
+  solidity: {
+    version: "0.8.9",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
     hardhat: {
       chainId: 1337,
@@ -32,6 +41,9 @@ module.exports = {
       // https://docs.binance.org/smart-chain/developer/rpc.html
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
+      throwOnTransactionFailures: true,
+      throwOnCallFailures: true,
+      allowUnlimitedContractSize: true,
       accounts: [process.env.MNEMONIC],
       // accounts: {
       //   mnemonic: process.env.MNEMONIC,

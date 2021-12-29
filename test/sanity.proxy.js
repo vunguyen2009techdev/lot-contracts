@@ -32,41 +32,22 @@ describe("Sanity (proxy)", function () {
     // get decimals
     decimals = await token.decimals();
 
-    const NFT = await ethers.getContractFactory("LandNFT");
-    nft = await upgrades.deployProxy(
-      NFT,
-      ["Land NFT", "LLOT", "https://api.landoftitans.net/nft/land/"],
-      {
-        deployer: owner.address,
-        initializer: "initialize",
-      }
-    );
-    await nft.deployed();
-
-    console.log("NFT proxy deployed to:", nft.address);
-    console.log("- name: ", await nft.name());
-    console.log("- symbol: ", await nft.symbol());
-
-    // expect(await nft.hasRole(await nft.DEFAULT_ADMIN_ROLE(), owner.address)).to
-    //   .be.true;
-
     const Crowdsale = await ethers.getContractFactory("LandNFTCrowdsale");
-    crowdsale = await upgrades.deployProxy(
-      Crowdsale,
-      [owner.address, nft.address],
-      {
-        initializer: "initialize",
-        // unsafeAllow: ["delegatecall"],
-      }
-    );
+    crowdsale = await upgrades.deployProxy(Crowdsale, [owner.address], {
+      initializer: "initialize",
+    });
 
     await crowdsale.deployed();
+    const NFT = await ethers.getContractFactory("LandNFT");
+    nft = await NFT.attach(await crowdsale.nftProxyAddress());
   });
 
   it("retrieve returns previously initialized", async function () {
-    console.log("Crowdsale proxy deployed to:", crowdsale.address);
-    const getOwner = await crowdsale.owner();
-    console.log("getOwner", getOwner);
+    console.log(
+      `Crowdsale proxy deployed to: ${
+        crowdsale.address
+      } and owner: ${await crowdsale.owner()}`
+    );
   });
 
   it("should allow to buy nft", async function () {
@@ -79,15 +60,8 @@ describe("Sanity (proxy)", function () {
       .connect(owner)
       .listedItem(itemId, price, token.address, cap);
 
-    // grantRole minter
-    // await nft.grantRole(nft.MINTER_ROLE(), buyer.address);
-    // console.log(
-    //   "check: ",
-    //   await nft.hasRole(await nft.MINTER_ROLE(), buyer.address)
-    // );
-    // expect(await nft.hasRole(await nft.MINTER_ROLE(), buyer.address)).to.be
-    //   .true;
-    console.log("minter role: ", await nft.MINTER_ROLE());
+    expect(await nft.hasRole(await nft.MINTER_ROLE(), crowdsale.address)).to.be
+      .true;
 
     // get balance before and after buying to verify later
     const balanceOfOwnerBefore = await token.balanceOf(owner.address);
@@ -121,14 +95,13 @@ describe("Sanity (proxy)", function () {
         }
       }
     });
-    console.log("tokenIds: ", tokenIds);
 
-    // tokenIds.map((tokenId) => expect(tokenId).to.be.an("object"));
+    tokenIds.map((tokenId) => expect(tokenId).to.be.an("object"));
 
     // verify nft ownership
-    // expect(await nft.balanceOf(buyer.address)).to.equal(quantity);
-    // tokenIds.map(async (tokenId) =>
-    //   expect(await nft.ownerOf(tokenId)).to.equal(buyer.address)
-    // );
+    expect(await nft.balanceOf(buyer.address)).to.equal(quantity);
+    tokenIds.map(async (tokenId) =>
+      expect(await nft.ownerOf(tokenId)).to.equal(buyer.address)
+    );
   });
 });
